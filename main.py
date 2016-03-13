@@ -10,6 +10,14 @@ import logging
 from optparse import OptionParser
 from os import path
 
+from host import Host
+
+def pingAll():
+    pass
+
+def initSocket():
+    pass
+
 def parseHostfile():
     global HOSTS
     HOSTS = dict()
@@ -28,10 +36,10 @@ def parseHostfile():
             hostport = int(hostinfo[2])
         if HOSTS.has_key(hostid):
             logging.error("Host id {0} already exists, abort".format(hostid))
-        HOSTS[hostid] = (hostname, hostport)
+        HOSTS[hostid] = Host(hostid, hostname, hostport)
 
 def parseOpt():
-    global PORT, HOSTFILE, MAXCRASH, HOSTS
+    global PORT, HOSTFILE, MAXCRASH
     usage = "Usage: %prog [<option> <arg>]..."
     parser = OptionParser(usage,add_help_option=False)
     parser.add_option("-p", "--port", dest="port",
@@ -57,6 +65,7 @@ def parseOpt():
 
 def main():
     parseOpt()
+    pingAll()
 
 if __name__ == "__main__":
     main()
