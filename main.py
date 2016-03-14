@@ -45,7 +45,7 @@ def pingAll():
             for id in pending:
                 mysock.sendto("Are you there?", ADDRLOOKUP[id])
         except socket.error, msg:
-            if msg[0] == 10054:
+            if msg[0] == 10054 and sys.platform == "win32":
                 # ignore connection reset because UDP is connection-less
                 pass
             else:
