@@ -1,4 +1,6 @@
 """""""""""""""""""""""""""""""""""""""
+from time import sleep
+from ctypes.wintypes import MSG
 FILE: main.py
 PURPOSE: main program for every host
 AUTHOR: Chi Yang
@@ -7,6 +9,7 @@ AUTHOR: Chi Yang
 import sys
 import logging
 import socket
+import time
 from optparse import OptionParser
 from os import path
 
@@ -14,26 +17,43 @@ from host import Host
 
 myid = None
 myname = None
+myip = None
 myport = None
 mysock = None
 
 def pingAll():
+    global mysock
     if mysock == None:
         logger.error("Socket is not initialized")
         sys.exit()
         
     # broadcast
-    for host in HOSTS.itervalues():
-        mysock.sendto("Are you there?", (host.hostname, host.port))
+    for addr in IDLOOKUP.keys():
+        mysock.sendto("Are you there?", addr)
         
-    cnt = 0
-    while cnt < len(HOSTS):
-        data, addr = mysock.recvfrom(512)
-        print addr,":",data
-        if data == "Are you there?":
-            mysock.sendto("Yes, I am.", addr)
-        else:
-            cnt += 1
+    pending = ADDRLOOKUP.keys()
+    mysock.settimeout(0.5)
+    while not len(pending) == 0:
+        try:
+            data, addr = mysock.recvfrom(512)
+            print addr,":",data
+            if data == "Are you there?":
+                mysock.sendto("Yes, I am.", addr)
+            elif data == "Yes, I am.":
+                pending.remove(IDLOOKUP[addr])
+        except socket.timeout, msg:
+            for id in pending:
+                mysock.sendto("Are you there?", ADDRLOOKUP[id])
+        except socket.error, msg:
+            if msg[0] == 10054:
+                # ignore connection reset because UDP is connection-less
+                pass
+            else:
+                logger.error(msg)
+                sys.exit()
+    mysock.settimeout(None)
+                
+    logger.info("All ping success")
 
 def initSocket():
     global mysock
@@ -41,8 +61,14 @@ def initSocket():
     mysock.bind((myname, myport))
 
 def parseHostfile():
-    global HOSTS, myid, myname, myport
-    HOSTS = dict()
+    global HOSTS, IDLOOKUP, ADDRLOOKUP, NAMELOOKUP, myid, myname, myip, myport
+    # get id by addr
+    IDLOOKUP = dict()
+    # get addr by id
+    ADDRLOOKUP = dict()
+    # get hostname by ip
+    NAMELOOKUP = dict()
+    
     hostfile = open(HOSTFILE, "rb")
     for line in hostfile:
         hostinfo = line.rstrip("\r\n").split(" ")
@@ -54,7 +80,17 @@ def parseHostfile():
         hostid = int(hostinfo[0])
         hostname = hostinfo[1]
         
-        # autocomplete port
+        try:
+            hostip = socket.gethostbyname(hostname)
+        except socket.gaierror, msg:
+            if msg[0] == 11001:
+                logger.error("Cannot find ip for host {0}".format(hostname))
+                sys.exit()
+            else:
+                logger.error(msg)
+                sys.exit()
+        
+        # auto-complete port
         if len(hostinfo) < 3:
             logger.warning("Port for host id {0} not assigned, assign {1}".format(hostid, PORT))
             hostport = PORT
@@ -63,17 +99,24 @@ def parseHostfile():
             
         
         # check existence
-        if HOSTS.has_key(hostid):
+        if ADDRLOOKUP.has_key(hostid):
             logger.error("Host id {0} already exists, abort".format(hostid))
+            sys.exit()
+        if IDLOOKUP.has_key((hostip, hostport)):
+            logger.error("Host {0}:{1} already exists, abort".format(hostname,hostport))
+            sys.exit()
+        if not NAMELOOKUP.has_key(hostip):
+            NAMELOOKUP[hostip] = socket.gethostbyname(hostname)
             
         # find me
         if hostname == socket.gethostname() and hostport == PORT:
-            myid, myname, myport = hostid, hostname, hostport
+            myid, myname, myip, myport = hostid, hostname, hostip, hostport
             logger.info("New Host: {0} {1} {2} *".format(hostid, hostname, hostport))
         else:
             logger.info("New Host: {0} {1} {2}".format(hostid, hostname, hostport))
         
-        HOSTS[hostid] = Host(hostid, hostname, hostport)
+        ADDRLOOKUP[hostid] = (hostip, hostport)
+        IDLOOKUP[(hostip, hostport)] = hostid
         
     # check result
     if myid == None:
