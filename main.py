@@ -115,7 +115,7 @@ def parseHostfile():
             logger.error("Host {0}:{1} already exists, abort".format(hostname,hostport))
             sys.exit()
         if not NAMELOOKUP.has_key(hostip):
-            NAMELOOKUP[hostip] = socket.gethostbyname(hostname)
+            NAMELOOKUP[hostip] = hostname
             
         # find me
         if (myip == hostip or hostip == "127.0.0.1") and hostport == PORT:
