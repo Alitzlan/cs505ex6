@@ -1,6 +1,5 @@
+
 """""""""""""""""""""""""""""""""""""""
-from time import sleep
-from ctypes.wintypes import MSG
 FILE: main.py
 PURPOSE: main program for every host
 AUTHOR: Chi Yang
