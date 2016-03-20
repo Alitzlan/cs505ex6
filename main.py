@@ -34,7 +34,7 @@ def pingAll():
     pending = ADDRLOOKUP.keys()
     mysock.settimeout(0.5)
     starttime = time.time()
-    while not len(pending) == 0 or time.time()-starttime < longwait:
+    while time.time()-starttime < shortwait:
         try:
             data, addr = mysock.recvfrom(512)
             print addr,":",data
