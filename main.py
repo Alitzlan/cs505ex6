@@ -22,6 +22,9 @@ mysock = None
 
 def pingAll():
     global mysock
+    longwait = 10
+    shortwait = 5
+    
     if mysock == None:
         logger.error("Socket is not initialized")
         sys.exit()
@@ -32,7 +35,8 @@ def pingAll():
         
     pending = ADDRLOOKUP.keys()
     mysock.settimeout(0.5)
-    while not len(pending) == 0:
+    starttime = time.time()
+    while not len(pending) == 0 or time.time()-starttime < longwait:
         try:
             data, addr = mysock.recvfrom(512)
             print addr,":",data
@@ -50,9 +54,15 @@ def pingAll():
             else:
                 logger.error(msg)
                 sys.exit()
+    
     mysock.settimeout(None)
-                
-    logger.info("All ping success")
+    
+    if len(pending) == 0:
+        logger.info("All ping success")
+    else:
+        for id in pending:
+            logger.info("{0}:{1} does not respond".format(NAMELOOKUP[ADDRLOOKUP[id][0]],ADDRLOOKUP[id][1]))
+        logger.info("Ping ends with failure")
 
 def initSocket():
     global mysock
@@ -67,6 +77,8 @@ def parseHostfile():
     ADDRLOOKUP = dict()
     # get hostname by ip
     NAMELOOKUP = dict()
+    
+    myip = socket.gethostbyname(socket.gethostname())
     
     hostfile = open(HOSTFILE, "rb")
     for line in hostfile:
@@ -108,7 +120,7 @@ def parseHostfile():
             NAMELOOKUP[hostip] = socket.gethostbyname(hostname)
             
         # find me
-        if hostname == socket.gethostname() and hostport == PORT:
+        if (myip == hostip or hostip == "127.0.0.1") and hostport == PORT:
             myid, myname, myip, myport = hostid, hostname, hostip, hostport
             logger.info("New Host: {0} {1} {2} *".format(hostid, hostname, hostport))
         else:
