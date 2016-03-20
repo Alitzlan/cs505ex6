@@ -12,8 +12,6 @@ import time
 from optparse import OptionParser
 from os import path
 
-from host import Host
-
 myid = None
 myname = None
 myip = None
