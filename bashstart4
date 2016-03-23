@@ -1,0 +1,5 @@
+#!/bin/bash
+echo "Start 4 test processes"
+for i in {1..4} ; do
+	( python main.py -p $((1023+i)) & )
+done
