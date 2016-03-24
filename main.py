@@ -21,6 +21,10 @@ myport = None
 mysock = None
 myaddr = None
 
+myterm = 0
+myvote = None
+myleader = None
+
 TEST_PING_TIMEOUT = 5
 
 FOLLOWER_TIMEOUT = 1
@@ -75,7 +79,7 @@ def initSocket():
     mysock.bind((myname, myport))
 
 def parseHostfile():
-    global HOSTS, IDLOOKUP, ADDRLOOKUP, NAMELOOKUP, myid, myname, myip, myport, myaddr
+    global HOSTS, IDLOOKUP, ADDRLOOKUP, NAMELOOKUP, myid, myname, myip, myport, myaddr, myterm
     # get id by addr
     IDLOOKUP = dict()
     # get addr by id
@@ -165,22 +169,32 @@ def parseOpt():
         logger.error("Host file not exist")
         sys.exit()
 
+def followerHandle(data, addr):
+    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader
+    msg = MessageBody(data)
+    if msg.type == MessageType.Ping:
+        if msg.term > myterm:
+            myterm = msg.term
+    elif msg.type == MessageType.RequestVote:
+        if msg.term > myterm:
+            myterm = term
+            mysock.sendto(MessageBody(MessageType.Vote, myterm, msg.id))
+        elif msg.term <= myterm:
+            mysock.sendto(MessageBody(MessageType.Vote, myterm, myleader))
+    elif msg.type == MessageType.Vote:
+        pass
+
 def followerLoop():
+    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader
     mysock.settimeout(FOLLOWER_TIMEOUT)
     while(True):
         try:
             data, addr = mysock.recvfrom(512)
             print addr,":",data
-            msg = MessageBody(data)
-            if msg.type == MessageType.Ping:
-                pass
-            elif msg.type == MessageType.RequestVote:
-                pass
-            elif msg.type == MessageType.Vote:
-                pass
+            followerHandle(data, addr)
         except socket.timeout, msg:
-            print "timeout!"
-            pass
+            logger.info("timeout")
+            return RaftState.Candidate
         except socket.error, msg:
             if msg[0] == 10054 and sys.platform == "win32":
                 # ignore connection reset because UDP is connection-less
@@ -190,7 +204,9 @@ def followerLoop():
                 sys.exit()
                 
 def candidateLoop():
+    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader
     mysock.settimeout(CANDIDATE_TIMEOUT)
+    
     while(True):
         try:
             data, addr = mysock.recvfrom(512)
@@ -213,18 +229,13 @@ def candidateLoop():
                 sys.exit()
                 
 def leaderLoop():
+    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader
     mysock.settimeout(LEADER_TIMEOUT)
     while(True):
         try:
             data, addr = mysock.recvfrom(512)
             print addr,":",data
             msg = MessageBody(data)
-            if msg.type == MessageType.Ping:
-                pass
-            elif msg.type == MessageType.RequestVote:
-                pass
-            elif msg.type == MessageType.Vote:
-                pass
             #sending heart_beat.
             heartbeat = MessageBody()
             heartbeat.term = myTerm
@@ -234,6 +245,9 @@ def leaderLoop():
                 #don't send to self
                 if(addr[1]!=myport):
                     mysock.sendto(heartbeat.toString(), addr)
+            if msg.term > myterm: 
+                followerHandle(data, addr)
+                return RaftMessage.Follower
         except socket.timeout, msg:
             pass
         except socket.error, msg:
@@ -260,9 +274,9 @@ def main():
     while(True):
         if nextState == RaftState.Follower:
             nextState = followerLoop()
-        elif nextState == RaftState.Follower:
+        elif nextState == RaftState.Candidate:
             nextState = candidateLoop()
-        elif nextState == RaftState.Follower:
+        elif nextState == RaftState.Leader:
             nextState = leaderLoop()
         else:
             logger.error("Unrecognized State")
