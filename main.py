@@ -286,20 +286,19 @@ def leaderLoop():
             data, addr = mysock.recvfrom(512)
             print addr,":",data
             msg = MessageBody(data)
+            if msg.term > myterm: 
+                followerHandle(data, addr)
+                return RaftMessage.Follower
+        except socket.timeout, msg:
             #sending heart_beat.
             heartbeat = MessageBody()
             heartbeat.term = myTerm
             heartbeat.id = myid
             # broadcast heart_beat 
-            for addr in IDLOOKUP.keys():
+            for id in ADDRLOOKUP.keys():
                 #don't send to self
-                if(addr[1]!=myport):
-                    mysock.sendto(heartbeat.toString(), addr)
-            if msg.term > myterm: 
-                followerHandle(data, addr)
-                return RaftMessage.Follower
-        except socket.timeout, msg:
-            pass
+                if(id!=myid):
+                    mysock.sendto(heartbeat.toString(), ADDRLOOKUP[id])
         except socket.error, msg:
             if msg[0] == 10054 and sys.platform == "win32":
                 # ignore connection reset because UDP is connection-less
