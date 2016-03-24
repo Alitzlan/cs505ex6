@@ -286,12 +286,18 @@ def leaderLoop():
             data, addr = mysock.recvfrom(512)
             print addr,":",data
             msg = MessageBody(data)
-            if msg.type == MessageType.Ping:
-                pass
-            elif msg.type == MessageType.RequestVote:
-                pass
-            elif msg.type == MessageType.Vote:
-                pass
+            #sending heart_beat.
+            heartbeat = MessageBody()
+            heartbeat.term = myTerm
+            heartbeat.id = myid
+            # broadcast heart_beat 
+            for addr in IDLOOKUP.keys():
+                #don't send to self
+                if(addr[1]!=myport):
+                    mysock.sendto(heartbeat.toString(), addr)
+            if msg.term > myterm: 
+                followerHandle(data, addr)
+                return RaftMessage.Follower
         except socket.timeout, msg:
             pass
         except socket.error, msg:
