@@ -23,6 +23,10 @@ myaddr = None
 
 TEST_PING_TIMEOUT = 5
 
+FOLLOWER_TIMEOUT = 1
+CANDIDATE_TIMEOUT = 1
+LEADER_TIMEOUT = 1
+
 def pingAll():
     global mysock
     
@@ -161,6 +165,76 @@ def parseOpt():
         logger.error("Host file not exist")
         sys.exit()
 
+def followerLoop(mysock):
+    mysock.settimeout(FOLLOWER_TIMEOUT)
+    while(True):
+        try:
+            data, addr = mysock.recvfrom(512)
+            print addr,":",data
+            msg = MessageBody(data)
+            if msg.type == MessageType.Ping:
+                pass
+            elif msg.type == MessageType.RequestVote:
+                pass
+            elif msg.type == MessageType.Vote:
+                pass
+        except socket.timeout, msg:
+            print "timeout!"
+            pass
+        except socket.error, msg:
+            if msg[0] == 10054 and sys.platform == "win32":
+                # ignore connection reset because UDP is connection-less
+                pass
+            else:
+                logger.error(msg)
+                sys.exit()
+                
+def candidateLoop(mysock):
+    mysock.settimeout(CANDIDATE_TIMEOUT)
+    while(True):
+        try:
+            data, addr = mysock.recvfrom(512)
+            print addr,":",data
+            msg = MessageBody(data)
+            if msg.type == MessageType.Ping:
+                pass
+            elif msg.type == MessageType.RequestVote:
+                pass
+            elif msg.type == MessageType.Vote:
+                pass
+        except socket.timeout, msg:
+            pass
+        except socket.error, msg:
+            if msg[0] == 10054 and sys.platform == "win32":
+                # ignore connection reset because UDP is connection-less
+                pass
+            else:
+                logger.error(msg)
+                sys.exit()
+                
+def leaderLoop(mysock):
+    mysock.settimeout(LEADER_TIMEOUT)
+    while(True):
+        try:
+            data, addr = mysock.recvfrom(512)
+            print addr,":",data
+            msg = MessageBody(data)
+            if msg.type == MessageType.Ping:
+                pass
+            elif msg.type == MessageType.RequestVote:
+                pass
+            elif msg.type == MessageType.Vote:
+                pass
+        except socket.timeout, msg:
+            pass
+        except socket.error, msg:
+            if msg[0] == 10054 and sys.platform == "win32":
+                # ignore connection reset because UDP is connection-less
+                pass
+            else:
+                logger.error(msg)
+                sys.exit()
+
 def main():
     # initial logger
     global logger
@@ -176,11 +250,11 @@ def main():
     nextState = RaftState.Follower
     while(True):
         if nextState == RaftState.Follower:
-            nextState = followerLoop(mysock)
+            nextState = followerLoop()
         elif nextState == RaftState.Follower:
-            nextState = candidateLoop(mysock)
+            nextState = candidateLoop()
         elif nextState == RaftState.Follower:
-            nextState = leaderLoop(mysock)
+            nextState = leaderLoop()
         else:
             logger.error("Unrecognized State")
             sys.exit()
