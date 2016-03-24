@@ -17,6 +17,7 @@ myname = None
 myip = None
 myport = None
 mysock = None
+myaddr = None
 
 def pingAll():
     global mysock
@@ -68,7 +69,7 @@ def initSocket():
     mysock.bind((myname, myport))
 
 def parseHostfile():
-    global HOSTS, IDLOOKUP, ADDRLOOKUP, NAMELOOKUP, myid, myname, myip, myport
+    global HOSTS, IDLOOKUP, ADDRLOOKUP, NAMELOOKUP, myid, myname, myip, myport, myaddr
     # get id by addr
     IDLOOKUP = dict()
     # get addr by id
@@ -120,6 +121,7 @@ def parseHostfile():
         # find me
         if (myip == hostip or hostip == "127.0.0.1") and hostport == PORT:
             myid, myname, myip, myport = hostid, hostname, hostip, hostport
+            myaddr = ( hostip, hostport )
             logger.info("New Host: {0} {1} {2} *".format(hostid, hostname, hostport))
         else:
             logger.info("New Host: {0} {1} {2}".format(hostid, hostname, hostport))
@@ -168,8 +170,6 @@ def main():
     parseOpt()
     initSocket()
     pingAll()
-    
-    
 
 if __name__ == "__main__":
     main()
