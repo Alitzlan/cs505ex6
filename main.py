@@ -204,7 +204,7 @@ def followerLoop():
                 sys.exit()
                 
 def candidateLoop():
-    global myid, myname, myip, myport, myaddr, mysock, myterm
+    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader
     mysock.settimeout(CANDIDATE_TIMEOUT)
     while(True):
         try:
@@ -228,7 +228,7 @@ def candidateLoop():
                 sys.exit()
                 
 def leaderLoop():
-    global myid, myname, myip, myport, myaddr, mysock, myterm
+    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader
     mysock.settimeout(LEADER_TIMEOUT)
     while(True):
         try:
