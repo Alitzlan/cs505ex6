@@ -21,11 +21,13 @@ myport = None
 mysock = None
 myaddr = None
 
+myterm = 0
+
 TEST_PING_TIMEOUT = 5
 
 FOLLOWER_TIMEOUT = 1
 CANDIDATE_TIMEOUT = 1
-LEADER_TIMEOUT = 1
+LEADER_TIMEOUT = 0.5
 
 def pingAll():
     global mysock
@@ -173,9 +175,12 @@ def followerLoop():
             print addr,":",data
             msg = MessageBody(data)
             if msg.type == MessageType.Ping:
-                pass
+                if msg.term > myterm:
+                    myterm = msg.term
             elif msg.type == MessageType.RequestVote:
-                pass
+                if msg.term > myterm:
+                    myterm = term
+                    mysock.sendto(addr,)
             elif msg.type == MessageType.Vote:
                 pass
         except socket.timeout, msg:
