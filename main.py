@@ -165,7 +165,7 @@ def parseOpt():
         logger.error("Host file not exist")
         sys.exit()
 
-def followerLoop(mysock):
+def followerLoop():
     mysock.settimeout(FOLLOWER_TIMEOUT)
     while(True):
         try:
@@ -189,7 +189,7 @@ def followerLoop(mysock):
                 logger.error(msg)
                 sys.exit()
                 
-def candidateLoop(mysock):
+def candidateLoop():
     mysock.settimeout(CANDIDATE_TIMEOUT)
     while(True):
         try:
@@ -212,7 +212,7 @@ def candidateLoop(mysock):
                 logger.error(msg)
                 sys.exit()
                 
-def leaderLoop(mysock):
+def leaderLoop():
     mysock.settimeout(LEADER_TIMEOUT)
     while(True):
         try:
