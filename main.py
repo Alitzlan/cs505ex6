@@ -9,6 +9,7 @@ import sys
 import logging
 import socket
 import time
+import random
 from optparse import OptionParser
 from collections import Counter
 from os import path
@@ -223,11 +224,11 @@ def candidateLoop():
     pending = set(living)
     cnt = Counter()
     
-    start = Time.time()
+    start = time.time()
     # broadcast request vote
     for id in peerid:
-        mysock.sendto(requestmsg, ADDRLOOKUP[id])
-    while(Time.time() - start < election_timeout):
+        mysock.sendto(requestmsg.toString(), ADDRLOOKUP[id])
+    while(time.time() - start < election_timeout):
         try:
             data, addr = mysock.recvfrom(512)
             print addr,":",data
