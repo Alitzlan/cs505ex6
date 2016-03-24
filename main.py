@@ -77,7 +77,7 @@ def initSocket():
     mysock.bind((myname, myport))
 
 def parseHostfile():
-    global HOSTS, IDLOOKUP, ADDRLOOKUP, NAMELOOKUP, myid, myname, myip, myport, myaddr
+    global HOSTS, IDLOOKUP, ADDRLOOKUP, NAMELOOKUP, myid, myname, myip, myport, myaddr, myterm
     # get id by addr
     IDLOOKUP = dict()
     # get addr by id
@@ -168,6 +168,7 @@ def parseOpt():
         sys.exit()
 
 def followerLoop():
+    global myid, myname, myip, myport, myaddr, mysock, myterm
     mysock.settimeout(FOLLOWER_TIMEOUT)
     while(True):
         try:
@@ -180,7 +181,7 @@ def followerLoop():
             elif msg.type == MessageType.RequestVote:
                 if msg.term > myterm:
                     myterm = term
-                    mysock.sendto(addr,)
+                    mysock.sendto(MessageBody(MessageType.Vote,++myterm,msg.id))
             elif msg.type == MessageType.Vote:
                 pass
         except socket.timeout, msg:
@@ -195,6 +196,7 @@ def followerLoop():
                 sys.exit()
                 
 def candidateLoop():
+    global myid, myname, myip, myport, myaddr, mysock, myterm
     mysock.settimeout(CANDIDATE_TIMEOUT)
     while(True):
         try:
@@ -218,6 +220,7 @@ def candidateLoop():
                 sys.exit()
                 
 def leaderLoop():
+    global myid, myname, myip, myport, myaddr, mysock, myterm
     mysock.settimeout(LEADER_TIMEOUT)
     while(True):
         try:
