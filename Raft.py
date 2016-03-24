@@ -1,6 +1,4 @@
 import json
-import socket
-import time
     
 class RaftState:
     Follower, Candidate, Leader = range(3)
