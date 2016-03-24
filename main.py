@@ -10,6 +10,7 @@ import logging
 import socket
 import time
 from optparse import OptionParser
+from collections import Counter
 from os import path
 
 from Raft import *
@@ -25,11 +26,13 @@ myterm = 0
 myvote = None
 myleader = None
 
+living = None
+
 TEST_PING_TIMEOUT = 5
 
-FOLLOWER_TIMEOUT = 1
-CANDIDATE_TIMEOUT = 1
-LEADER_TIMEOUT = 0.5
+FOLLOWER_TIMEOUT = 0.5
+CANDIDATE_TIMEOUT = 0.05
+LEADER_TIMEOUT = 0.25
 
 def pingAll():
     global mysock
@@ -175,12 +178,14 @@ def followerHandle(data, addr):
     if msg.type == MessageType.Ping:
         if msg.term > myterm:
             myterm = msg.term
+            myleader = msg.id
     elif msg.type == MessageType.RequestVote:
         if msg.term > myterm:
-            myterm = term
-            mysock.sendto(MessageBody(MessageType.Vote, myterm, msg.id))
+            myterm = msg.term
+            myleader = msg.id
+            mysock.sendto(MessageBody(MessageType.Vote, myterm, msg.id).toString(), addr)
         elif msg.term <= myterm:
-            mysock.sendto(MessageBody(MessageType.Vote, myterm, myleader))
+            mysock.sendto(MessageBody(MessageType.Vote, myterm, myleader).toString(), addr)
     elif msg.type == MessageType.Vote:
         pass
 
@@ -204,22 +209,65 @@ def followerLoop():
                 sys.exit()
                 
 def candidateLoop():
-    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader
+    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader, living
     mysock.settimeout(CANDIDATE_TIMEOUT)
+    myterm += 1
+    myleader = myid
+    election_timeout = random.randrange(150, 300) / 1000.
+    requestmsg = MessageBody(MessageType.RequestVote, myterm, myid)
+    peerid = ADDRLOOKUP.keys()
     
-    while(True):
+    # for counting
+    if living == None:
+        living = set(peerid)
+    pending = set(living)
+    cnt = Counter()
+    
+    start = Time.time()
+    # broadcast request vote
+    for id in peerid:
+        mysock.sendto(requestmsg, ADDRLOOKUP[id])
+    while(Time.time() - start < election_timeout):
         try:
             data, addr = mysock.recvfrom(512)
             print addr,":",data
+            if not IDLOOKUP[addr] in living:
+                living.add(IDLOOKUP[addr])
+                return RaftState.Candidate
+            pending.remove(IDLOOKUP[addr])
             msg = MessageBody(data)
             if msg.type == MessageType.Ping:
-                pass
+                if msg.term >= myterm:
+                    return RaftState.Follower
+                else:
+                    pass
             elif msg.type == MessageType.RequestVote:
-                pass
+                if msg.term > myterm:
+                    myterm = msg.term
+                    myleader = msg.id
+                    mysock.sendto(MessageBody(MessageType.Vote, myterm, msg.id).toString(), addr)
+                    return RaftState.Follower
+                elif msg.term <= myterm:
+                    mysock.sendto(MessageBody(MessageType.Vote, myterm, myleader).toString(), addr)
             elif msg.type == MessageType.Vote:
-                pass
+                if msg.term > myterm:
+                    myterm = msg.term
+                    myleader = msg.id
+                    return RaftState.Follower
+                elif msg.term == myterm:
+                    cnt[msg.id] += 1
+                    leading = cnt.most_common(1)
+                    if leading[0][1] / len(living) > 0.5:
+                        return RaftState.Leader
+                else:
+                    pass
         except socket.timeout, msg:
-            pass
+            if len(pending):
+                for id in pending:
+                    living.remove(id)
+                return RaftState.Candidate
+            else:
+                pass
         except socket.error, msg:
             if msg[0] == 10054 and sys.platform == "win32":
                 # ignore connection reset because UDP is connection-less
@@ -227,6 +275,8 @@ def candidateLoop():
             else:
                 logger.error(msg)
                 sys.exit()
+    # election timeout
+    return RaftState.Candidate 
                 
 def leaderLoop():
     global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader
