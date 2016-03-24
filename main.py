@@ -12,6 +12,8 @@ import time
 from optparse import OptionParser
 from os import path
 
+from Raft import *
+
 myid = None
 myname = None
 myip = None
@@ -19,10 +21,10 @@ myport = None
 mysock = None
 myaddr = None
 
+TEST_PING_TIMEOUT = 5
+
 def pingAll():
     global mysock
-    longwait = 10
-    shortwait = 5
     
     if mysock == None:
         logger.error("Socket is not initialized")
@@ -35,7 +37,7 @@ def pingAll():
     pending = ADDRLOOKUP.keys()
     mysock.settimeout(0.5)
     starttime = time.time()
-    while time.time()-starttime < shortwait:
+    while time.time()-starttime < TEST_PING_TIMEOUT:
         try:
             data, addr = mysock.recvfrom(512)
             print addr,":",data
@@ -169,7 +171,19 @@ def main():
     # initialization
     parseOpt()
     initSocket()
-    pingAll()
+    
+    # state loop
+    nextState = RaftState.Follower
+    while(True):
+        if nextState == RaftState.Follower:
+            nextState = followerLoop(mysock)
+        elif nextState == RaftState.Follower:
+            nextState = candidateLoop(mysock)
+        elif nextState == RaftState.Follower:
+            nextState = leaderLoop(mysock)
+        else:
+            logger.error("Unrecognized State")
+            sys.exit()
 
 if __name__ == "__main__":
     main()
