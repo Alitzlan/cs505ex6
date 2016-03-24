@@ -32,7 +32,7 @@ living = None
 TEST_PING_TIMEOUT = 5
 
 FOLLOWER_TIMEOUT = 0.5
-CANDIDATE_TIMEOUT = 0.05
+CANDIDATE_TIMEOUT = 0.1
 LEADER_TIMEOUT = 0.25
 
 def pingAll():
@@ -175,7 +175,8 @@ def parseOpt():
 
 def followerHandle(data, addr):
     global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader
-    msg = MessageBody(data)
+    msg = MessageBody.fromStr(data)
+    print msg.type
     if msg.type == MessageType.Ping:
         if msg.term > myterm:
             myterm = msg.term
@@ -235,8 +236,7 @@ def candidateLoop():
             if not IDLOOKUP[addr] in living:
                 living.add(IDLOOKUP[addr])
                 return RaftState.Candidate
-            pending.remove(IDLOOKUP[addr])
-            msg = MessageBody(data)
+            msg = MessageBody.fromStr(data)
             if msg.type == MessageType.Ping:
                 if msg.term >= myterm:
                     return RaftState.Follower
@@ -256,6 +256,7 @@ def candidateLoop():
                     myleader = msg.id
                     return RaftState.Follower
                 elif msg.term == myterm:
+                    pending.remove(IDLOOKUP[addr])
                     cnt[msg.id] += 1
                     leading = cnt.most_common(1)
                     if leading[0][1] / len(living) > 0.5:
@@ -263,6 +264,7 @@ def candidateLoop():
                 else:
                     pass
         except socket.timeout, msg:
+            print "no respond"
             if len(pending):
                 for id in pending:
                     living.remove(id)
@@ -286,14 +288,14 @@ def leaderLoop():
         try:
             data, addr = mysock.recvfrom(512)
             print addr,":",data
-            msg = MessageBody(data)
+            msg = MessageBody.fromStr(data)
             if msg.term > myterm: 
                 followerHandle(data, addr)
                 return RaftMessage.Follower
         except socket.timeout, msg:
             #sending heart_beat.
             heartbeat = MessageBody()
-            heartbeat.term = myTerm
+            heartbeat.term = myterm
             heartbeat.id = myid
             # broadcast heart_beat 
             for id in ADDRLOOKUP.keys():
@@ -323,10 +325,13 @@ def main():
     nextState = RaftState.Follower
     while(True):
         if nextState == RaftState.Follower:
+            logger.info("Follower")
             nextState = followerLoop()
         elif nextState == RaftState.Candidate:
+            logger.info("Candidate")
             nextState = candidateLoop()
         elif nextState == RaftState.Leader:
+            logger.info("Leader")
             nextState = leaderLoop()
         else:
             logger.error("Unrecognized State")
