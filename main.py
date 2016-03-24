@@ -176,7 +176,6 @@ def parseOpt():
 def followerHandle(data, addr):
     global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader
     msg = MessageBody.fromStr(data)
-    print msg.type
     if msg.type == MessageType.Ping:
         if msg.term > myterm:
             myterm = msg.term
