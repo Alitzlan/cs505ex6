@@ -206,6 +206,7 @@ def followerLoop():
 def candidateLoop():
     global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader
     mysock.settimeout(CANDIDATE_TIMEOUT)
+    
     while(True):
         try:
             data, addr = mysock.recvfrom(512)
@@ -267,9 +268,9 @@ def main():
     while(True):
         if nextState == RaftState.Follower:
             nextState = followerLoop()
-        elif nextState == RaftState.Follower:
+        elif nextState == RaftState.Candidate:
             nextState = candidateLoop()
-        elif nextState == RaftState.Follower:
+        elif nextState == RaftState.Leader:
             nextState = leaderLoop()
         else:
             logger.error("Unrecognized State")
