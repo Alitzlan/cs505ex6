@@ -25,7 +25,7 @@ TEST_PING_TIMEOUT = 5
 
 FOLLOWER_TIMEOUT = 1
 CANDIDATE_TIMEOUT = 1
-LEADER_TIMEOUT = 1
+LEADER_TIMEOUT = 0.5
 
 def pingAll():
     global mysock
@@ -225,6 +225,15 @@ def leaderLoop():
                 pass
             elif msg.type == MessageType.Vote:
                 pass
+            #sending heart_beat.
+            heartbeat = MessageBody()
+            heartbeat.term = myTerm
+            heartbeat.id = myid
+            # broadcast heart_beat 
+            for addr in IDLOOKUP.keys():
+                #don't send to self
+                if(addr[1]!=myport):
+                    mysock.sendto(heartbeat.toString(), addr)
         except socket.timeout, msg:
             pass
         except socket.error, msg:
