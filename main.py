@@ -186,6 +186,7 @@ def followerHandle(data, addr):
         elif msg.term == myterm and myleader != msg.id:
             myterm = msg.term
             myleader = msg.id
+            leaderchange = True
         if leaderchange:
             print "[{0}] Node {1}: node {2} is elected as new leader.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
             leaderchange = False
