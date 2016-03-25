@@ -268,7 +268,8 @@ def candidateLoop():
                     myleader = msg.id
                     return RaftState.Follower
                 elif msg.term == myterm:
-                    pending.remove(IDLOOKUP[addr])
+                    if IDLOOKUP[addr] in pending:
+                        pending.remove(IDLOOKUP[addr])
                     cnt[msg.id] += 1
                     leading = cnt.most_common(1)
                     if leading[0][1] / len(living) > 0.5:
