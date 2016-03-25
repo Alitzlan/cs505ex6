@@ -1,0 +1,12 @@
+#!/bin/bash
+num=$1
+echo "Start ${num} test processes"
+tempfile="temphosts"
+for i in $(seq 1 ${num}) ; do
+    ( echo "${i} localhost $((1023+i))" >> "${tempfile}" )
+done
+for i in $(seq 1 ${num}) ; do
+	( python main.py -h ${tempfile} -p $((1023+i)) & )
+done
+sleep 5
+rm ${tempfile}
