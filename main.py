@@ -324,6 +324,8 @@ def leaderLoop():
                 sys.exit()
 
 def main():
+    global leaderchange
+    
     # initialization
     parseOpt()
     initSocket()
