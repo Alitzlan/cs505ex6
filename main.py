@@ -182,6 +182,8 @@ def followerHandle(data, addr):
         if msg.term > myterm:
             myterm = msg.term
             myleader = msg.id
+            if myleader != None:
+                print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
             leaderchange = True
         elif msg.term == myterm and myleader != msg.id:
             myterm = msg.term
