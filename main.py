@@ -182,9 +182,11 @@ def followerHandle(data, addr):
         if msg.term > myterm:
             myterm = msg.term
             myleader = msg.id
+            leaderchange = True
         elif msg.term == myterm and myleader != msg.id:
             myterm = msg.term
             myleader = msg.id
+            leaderchange = True
         if leaderchange:
             print "[{0}] Node {1}: node {2} is elected as new leader.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
             leaderchange = False
@@ -199,7 +201,7 @@ def followerHandle(data, addr):
         pass
 
 def followerLoop():
-    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader, leaderchange
+    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader
     mysock.settimeout(FOLLOWER_TIMEOUT)
     while(True):
         try:
@@ -210,7 +212,6 @@ def followerLoop():
             loginfo(myid,"leader timeout")
             if myleader != None:
                 print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
-            leaderchange = True
             return RaftState.Candidate
         except socket.error, msg:
             if msg[0] == 10054 and sys.platform == "win32":
