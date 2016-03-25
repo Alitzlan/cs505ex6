@@ -339,6 +339,7 @@ def leaderLoop():
                 sys.exit()
 
 def main():
+    global prevstate
     # initialization
     parseOpt()
     initSocket()
