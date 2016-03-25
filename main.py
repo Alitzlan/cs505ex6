@@ -359,7 +359,7 @@ def main():
             print "[{0}] Node {1}: node {2} is elected as new leader.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
             loginfo(myid,"Leader")
             nextState = leaderLoop()
-            prevstate = RaftState.Follower
+            prevstate = RaftState.Leader
         else:
             logerror(myid,"Unrecognized State")
             sys.exit()
