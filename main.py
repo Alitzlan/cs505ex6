@@ -6,7 +6,6 @@ AUTHOR: Chi Yang
 """""""""""""""""""""""""""""""""""""""
 
 import sys
-import logging
 import socket
 import time
 import random
@@ -15,6 +14,7 @@ from collections import Counter
 from os import path
 
 from Raft import *
+from Logger import *
 
 myid = None
 myname = None
@@ -29,6 +29,8 @@ myleader = None
 
 living = None
 
+leaderchange = True
+
 TEST_PING_TIMEOUT = 5
 
 FOLLOWER_TIMEOUT = 0.5
@@ -39,7 +41,7 @@ def pingAll():
     global mysock
     
     if mysock == None:
-        logger.error("Socket is not initialized")
+        logerror(myid,"Socket is not initialized")
         sys.exit()
         
     # broadcast
@@ -52,7 +54,7 @@ def pingAll():
     while time.time()-starttime < TEST_PING_TIMEOUT:
         try:
             data, addr = mysock.recvfrom(512)
-            print addr,":",data
+            logdebug(myid, str(addr)+":"+data)
             if data == "Are you there?":
                 mysock.sendto("Yes, I am.", addr)
             elif data == "Yes, I am.":
@@ -65,17 +67,17 @@ def pingAll():
                 # ignore connection reset because UDP is connection-less
                 pass
             else:
-                logger.error(msg)
+                logerror(myid,msg)
                 sys.exit()
     
     mysock.settimeout(None)
     
     if len(pending) == 0:
-        logger.info("All ping success")
+        loginfo(myid,"All ping success")
     else:
         for id in pending:
-            logger.info("{0}:{1} does not respond".format(NAMELOOKUP[ADDRLOOKUP[id][0]],ADDRLOOKUP[id][1]))
-        logger.info("Ping ends with failure")
+            loginfo(myid,"{0}:{1} does not respond".format(NAMELOOKUP[ADDRLOOKUP[id][0]],ADDRLOOKUP[id][1]))
+        loginfo(myid,"Ping ends with failure")
 
 def initSocket():
     global mysock
@@ -99,7 +101,7 @@ def parseHostfile():
         
         # check least number of arg
         if len(hostinfo) < 2:
-            logger.error("Not enough args in hostfile")
+            logerror(myid,"Not enough args in hostfile")
             sys.exit()
         hostid = int(hostinfo[0])
         hostname = hostinfo[1]
@@ -108,15 +110,15 @@ def parseHostfile():
             hostip = socket.gethostbyname(hostname)
         except socket.gaierror, msg:
             if msg[0] == 11001:
-                logger.error("Cannot find ip for host {0}".format(hostname))
+                logerror(myid,"Cannot find ip for host {0}".format(hostname))
                 sys.exit()
             else:
-                logger.error(msg)
+                logerror(myid,msg)
                 sys.exit()
         
         # auto-complete port
         if len(hostinfo) < 3:
-            logger.warning("Port for host id {0} not assigned, assign {1}".format(hostid, PORT))
+            logwarning(myid,"Port for host id {0} not assigned, assign {1}".format(hostid, PORT))
             hostport = PORT
         else:
             hostport = int(hostinfo[2])
@@ -124,10 +126,10 @@ def parseHostfile():
         
         # check existence
         if ADDRLOOKUP.has_key(hostid):
-            logger.error("Host id {0} already exists, abort".format(hostid))
+            logerror(myid,"Host id {0} already exists, abort".format(hostid))
             sys.exit()
         if IDLOOKUP.has_key((hostip, hostport)):
-            logger.error("Host {0}:{1} already exists, abort".format(hostname,hostport))
+            logerror(myid,"Host {0}:{1} already exists, abort".format(hostname,hostport))
             sys.exit()
         if not NAMELOOKUP.has_key(hostip):
             NAMELOOKUP[hostip] = hostname
@@ -136,16 +138,16 @@ def parseHostfile():
         if (myip == hostip or hostip == "127.0.0.1") and hostport == PORT:
             myid, myname, myip, myport = hostid, hostname, hostip, hostport
             myaddr = ( hostip, hostport )
-            logger.info("New Host: {0} {1} {2} *".format(hostid, hostname, hostport))
+            loginfo(myid,"New Host: {0} {1} {2} *".format(hostid, hostname, hostport))
         else:
-            logger.info("New Host: {0} {1} {2}".format(hostid, hostname, hostport))
+            loginfo(myid,"New Host: {0} {1} {2}".format(hostid, hostname, hostport))
         
         ADDRLOOKUP[hostid] = (hostip, hostport)
         IDLOOKUP[(hostip, hostport)] = hostid
         
     # check result
     if myid == None:
-        logger.error("I am not in the hostfile")
+        logerror(myid,"I am not in the hostfile")
         sys.exit()
 
 def parseOpt():
@@ -170,21 +172,28 @@ def parseOpt():
     if path.isfile(HOSTFILE):
         parseHostfile()
     else:
-        logger.error("Host file not exist")
+        logerror(myid,"Host file not exist")
         sys.exit()
 
 def followerHandle(data, addr):
-    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader
+    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader, leaderchange
     msg = MessageBody.fromStr(data)
     if msg.type == MessageType.Ping:
         if msg.term > myterm:
             myterm = msg.term
             myleader = msg.id
+        elif msg.term == myterm and myleader != msg.id:
+            myterm = msg.term
+            myleader = msg.id
+        if leaderchange:
+            print "[{0}] Node {1}: node {2} is elected as new leader.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
+            leaderchange = False
     elif msg.type == MessageType.RequestVote:
         if msg.term > myterm:
             myterm = msg.term
             myleader = msg.id
             mysock.sendto(MessageBody(MessageType.Vote, myterm, msg.id).toString(), addr)
+            leaderchange = True
         elif msg.term <= myterm:
             mysock.sendto(MessageBody(MessageType.Vote, myterm, myleader).toString(), addr)
     elif msg.type == MessageType.Vote:
@@ -196,17 +205,19 @@ def followerLoop():
     while(True):
         try:
             data, addr = mysock.recvfrom(512)
-            print addr,":",data
+            logdebug(myid, str(addr)+":"+data)
             followerHandle(data, addr)
         except socket.timeout, msg:
-            logger.info("timeout")
+            loginfo(myid,"timeout")
+            if myleader != None:
+                print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
             return RaftState.Candidate
         except socket.error, msg:
             if msg[0] == 10054 and sys.platform == "win32":
                 # ignore connection reset because UDP is connection-less
                 pass
             else:
-                logger.error(msg)
+                logerror(myid,msg)
                 sys.exit()
                 
 def candidateLoop():
@@ -231,9 +242,10 @@ def candidateLoop():
     while(time.time() - start < election_timeout):
         try:
             data, addr = mysock.recvfrom(512)
-            print addr,":",data
+            logdebug(myid, str(addr)+":"+data)
             if not IDLOOKUP[addr] in living:
                 living.add(IDLOOKUP[addr])
+                logdebug(myid, "new live peer <{0}>".format(IDLOOKUP[addr]))
                 return RaftState.Candidate
             msg = MessageBody.fromStr(data)
             if msg.type == MessageType.Ping:
@@ -263,9 +275,9 @@ def candidateLoop():
                 else:
                     pass
         except socket.timeout, msg:
-            print "no respond"
             if len(pending):
                 for id in pending:
+                    logdebug(myid, "no response from <{0}>".format(id))
                     living.remove(id)
                 return RaftState.Candidate
             else:
@@ -275,7 +287,7 @@ def candidateLoop():
                 # ignore connection reset because UDP is connection-less
                 pass
             else:
-                logger.error(msg)
+                logerror(myid,msg)
                 sys.exit()
     # election timeout
     return RaftState.Candidate 
@@ -286,7 +298,7 @@ def leaderLoop():
     while(True):
         try:
             data, addr = mysock.recvfrom(512)
-            print addr,":",data
+            logdebug(myid, str(addr)+":"+data)
             msg = MessageBody.fromStr(data)
             if msg.term > myterm: 
                 followerHandle(data, addr)
@@ -306,15 +318,11 @@ def leaderLoop():
                 # ignore connection reset because UDP is connection-less
                 pass
             else:
-                logger.error(msg)
+                logerror(myid,msg)
                 sys.exit()
 
 def main():
-    # initial logger
-    global logger
-    logging.basicConfig()
-    logger = logging.getLogger("global")
-    logger.setLevel(logging.INFO)
+    
     
     # initialization
     parseOpt()
@@ -324,16 +332,18 @@ def main():
     nextState = RaftState.Follower
     while(True):
         if nextState == RaftState.Follower:
-            logger.info("Follower")
+            loginfo(myid,"Follower")
             nextState = followerLoop()
         elif nextState == RaftState.Candidate:
-            logger.info("Candidate")
+            print "[{0}] Node {1}: begin another leader election.".format(time.strftime("%H:%M:%S",time.localtime()), myid)
+            loginfo(myid,"Candidate")
             nextState = candidateLoop()
         elif nextState == RaftState.Leader:
-            logger.info("Leader")
+            print "[{0}] Node {1}: node {2} is elected as new leader.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
+            loginfo(myid,"Leader")
             nextState = leaderLoop()
         else:
-            logger.error("Unrecognized State")
+            logerror(myid,"Unrecognized State")
             sys.exit()
 
 if __name__ == "__main__":
