@@ -180,7 +180,7 @@ def followerHandle(data, addr):
     global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader, stableterm, crashleader
     msg = MessageBody.fromStr(data)
     if msg.type == MessageType.Ping:
-        if msg.term > stableterm:
+        if msg.term > stableterm and crashleader != None:
             print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, crashleader)
         if msg.term > myterm:
             oldleader = myleader
