@@ -180,7 +180,7 @@ def followerHandle(data, addr):
     msg = MessageBody.fromStr(data)
     if msg.type == MessageType.Ping:
         if msg.term > myterm:
-            if myleader != None:
+            if myleader != msg.id:
                 print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
             myterm = msg.term
             myleader = msg.id
@@ -194,7 +194,7 @@ def followerHandle(data, addr):
             leaderchange = False
     elif msg.type == MessageType.RequestVote:
         if msg.term > myterm:
-            if myleader != None:
+            if myleader != msg.id:
                 print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
             myterm = msg.term
             myleader = msg.id
