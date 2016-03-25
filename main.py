@@ -29,7 +29,8 @@ myleader = None
 
 living = None
 
-leaderchange = True
+stableterm = None
+crashleader = None
 
 TEST_PING_TIMEOUT = 5
 
@@ -176,10 +177,11 @@ def parseOpt():
         sys.exit()
 
 def followerHandle(data, addr):
-    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader, leaderchange
+    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader, stableterm, crashleader
     msg = MessageBody.fromStr(data)
     if msg.type == MessageType.Ping:
-        oldleader = None
+        if msg.term > stableterm:
+            print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, crashleader)
         if msg.term > myterm:
             oldleader = myleader
             myterm = msg.term
@@ -190,16 +192,15 @@ def followerHandle(data, addr):
             myterm = msg.term
             myleader = msg.id
             leaderchange = True
-        if leaderchange:
-            if oldleader != None:
-                print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, oldleader)
+        if msg.term > stableterm:
+            stableterm = msg.term
+            crashleader = myleader
             print "[{0}] Node {1}: node {2} is elected as new leader.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
             leaderchange = False
     elif msg.type == MessageType.RequestVote:
         if msg.term > myterm:
             myterm = msg.term
             myleader = msg.id
-            leaderchange = True
             mysock.sendto(MessageBody(MessageType.Vote, myterm, msg.id).toString(), addr)
         elif msg.term <= myterm:
             mysock.sendto(MessageBody(MessageType.Vote, myterm, myleader).toString(), addr)
@@ -330,8 +331,6 @@ def leaderLoop():
                 sys.exit()
 
 def main():
-    global leaderchange
-    
     # initialization
     parseOpt()
     initSocket()
@@ -341,7 +340,6 @@ def main():
     while(True):
         if nextState == RaftState.Follower:
             loginfo(myid,"Follower")
-            leaderchange = True
             nextState = followerLoop()
         elif nextState == RaftState.Candidate:
             print "[{0}] Node {1}: begin another leader election.".format(time.strftime("%H:%M:%S",time.localtime()), myid)
