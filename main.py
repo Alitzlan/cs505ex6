@@ -179,7 +179,7 @@ def parseOpt():
         sys.exit()
 
 def followerHandle(data, addr):
-    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader, stableterm, crashleader
+    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader, stableterm, crashleader, voterflag
     msg = MessageBody.fromStr(data)
     if msg.type == MessageType.Ping:
         if msg.term > myterm:
