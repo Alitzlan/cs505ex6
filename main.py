@@ -32,6 +32,7 @@ living = None
 stableterm = None
 crashleader = None
 prevstate = None
+voterflag = False
 
 TEST_PING_TIMEOUT = 5
 
@@ -181,8 +182,6 @@ def followerHandle(data, addr):
     global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader, stableterm, crashleader
     msg = MessageBody.fromStr(data)
     if msg.type == MessageType.Ping:
-        if msg.term > stableterm and crashleader != None:
-            print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, crashleader)
         if msg.term > myterm:
             oldleader = myleader
             myterm = msg.term
@@ -193,12 +192,22 @@ def followerHandle(data, addr):
             myterm = msg.term
             myleader = msg.id
             leaderchange = True
+            
+        # leader is elected
         if msg.term > stableterm:
             stableterm = msg.term
             crashleader = myleader
+            voterflag = False
             print "[{0}] Node {1}: node {2} is elected as new leader.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
             leaderchange = False
+            
     elif msg.type == MessageType.RequestVote:
+        # new vote for follower
+        if msg.term > stableterm and crashleader != None and voterflag == False:
+            print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, crashleader)
+            voterflag = True
+            print "[{0}] Node {1}: begin another leader election.".format(time.strftime("%H:%M:%S",time.localtime()), myid)       
+        
         if msg.term > myterm:
             myterm = msg.term
             myleader = msg.id
