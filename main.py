@@ -186,12 +186,10 @@ def followerHandle(data, addr):
             oldleader = myleader
             myterm = msg.term
             myleader = msg.id
-            leaderchange = True
         elif msg.term == myterm and myleader != msg.id:
             oldleader = myleader
             myterm = msg.term
             myleader = msg.id
-            leaderchange = True
             
         # leader is elected
         if msg.term > stableterm:
@@ -199,7 +197,6 @@ def followerHandle(data, addr):
             crashleader = myleader
             voterflag = False
             print "[{0}] Node {1}: node {2} is elected as new leader.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
-            leaderchange = False
             
     elif msg.type == MessageType.RequestVote:
         # new vote for follower
