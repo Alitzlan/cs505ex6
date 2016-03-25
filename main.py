@@ -182,11 +182,9 @@ def followerHandle(data, addr):
         if msg.term > myterm:
             myterm = msg.term
             myleader = msg.id
-            leaderchange = True
         elif msg.term == myterm and myleader != msg.id:
             myterm = msg.term
             myleader = msg.id
-            leaderchange = True
         if leaderchange:
             print "[{0}] Node {1}: node {2} is elected as new leader.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
             leaderchange = False
@@ -334,6 +332,7 @@ def main():
     while(True):
         if nextState == RaftState.Follower:
             loginfo(myid,"Follower")
+            leaderchange = True
             nextState = followerLoop()
         elif nextState == RaftState.Candidate:
             print "[{0}] Node {1}: begin another leader election.".format(time.strftime("%H:%M:%S",time.localtime()), myid)
