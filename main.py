@@ -194,6 +194,7 @@ def followerHandle(data, addr):
         if msg.term > myterm:
             myterm = msg.term
             myleader = msg.id
+            leaderchange = True
             mysock.sendto(MessageBody(MessageType.Vote, myterm, msg.id).toString(), addr)
         elif msg.term <= myterm:
             mysock.sendto(MessageBody(MessageType.Vote, myterm, myleader).toString(), addr)
