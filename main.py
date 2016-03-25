@@ -22,7 +22,7 @@ myip = None
 myport = None
 mysock = None
 myaddr = None
-
+logger = None 
 myterm = 0
 myvote = None
 myleader = None
@@ -166,6 +166,8 @@ def parseOpt():
     PORT = int(options.port)
     HOSTFILE = options.hostfile
     MAXCRASH = int(options.maxcrash)
+    if(HOSTFILE == 'wifeHost'):
+        PORT = 2024
     
     if path.isfile(HOSTFILE):
         parseHostfile()
@@ -307,6 +309,13 @@ def leaderLoop():
             else:
                 logger.error(msg)
                 sys.exit()
+
+def initLogger():
+    global logger
+    logging.basicConfig()
+    logger = logging.getLogger("global")
+    logger.setLevel(logging.INFO)
+
 
 def main():
     # initial logger
