@@ -179,23 +179,24 @@ def followerHandle(data, addr):
     global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader, leaderchange
     msg = MessageBody.fromStr(data)
     if msg.type == MessageType.Ping:
+        oldleader = None
         if msg.term > myterm:
-            if myleader != msg.id:
-                print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
+            oldleader = myleader
             myterm = msg.term
             myleader = msg.id
             leaderchange = True
         elif msg.term == myterm and myleader != msg.id:
+            oldleader = myleader
             myterm = msg.term
             myleader = msg.id
             leaderchange = True
         if leaderchange:
+            if oldleader != None:
+                print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, oldleader)
             print "[{0}] Node {1}: node {2} is elected as new leader.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
             leaderchange = False
     elif msg.type == MessageType.RequestVote:
         if msg.term > myterm:
-            if myleader != msg.id:
-                print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
             myterm = msg.term
             myleader = msg.id
             leaderchange = True
