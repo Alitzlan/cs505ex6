@@ -179,7 +179,7 @@ def parseOpt():
         sys.exit()
 
 def followerHandle(data, addr):
-    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader, stableterm, crashleader, voterflag
+    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader, stableterm, crashleader, voterflag, prevstate
     msg = MessageBody.fromStr(data)
     if msg.type == MessageType.Ping:
         if msg.term > myterm:
@@ -216,7 +216,7 @@ def followerHandle(data, addr):
         pass
 
 def followerLoop():
-    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader, prevstate
+    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader
     mysock.settimeout(FOLLOWER_TIMEOUT)
     while(True):
         try:
