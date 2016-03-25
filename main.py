@@ -201,9 +201,9 @@ def followerHandle(data, addr):
     elif msg.type == MessageType.RequestVote:
         # new vote for follower
         if msg.term > stableterm and crashleader != None and voterflag == False:
-            print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, crashleader)
             voterflag = True
             if prevstate != RaftState.Candidate:
+                print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, crashleader)
                 print "[{0}] Node {1}: begin another leader election.".format(time.strftime("%H:%M:%S",time.localtime()), myid)       
         
         if msg.term > myterm:

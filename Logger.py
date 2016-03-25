@@ -3,7 +3,7 @@ import logging
 # initial logger
 logging.basicConfig()
 logger = logging.getLogger("global")
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.INFO)
 
 def logdebug(id, msg):
     logger.debug("<{0}>:{1}".format(id, msg))
