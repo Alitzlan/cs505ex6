@@ -31,6 +31,7 @@ living = None
 
 stableterm = None
 crashleader = None
+prevstate = None
 
 TEST_PING_TIMEOUT = 5
 
@@ -208,7 +209,7 @@ def followerHandle(data, addr):
         pass
 
 def followerLoop():
-    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader
+    global myid, myname, myip, myport, myaddr, mysock, myterm, myvote, myleader, prevstate
     mysock.settimeout(FOLLOWER_TIMEOUT)
     while(True):
         try:
@@ -341,14 +342,18 @@ def main():
         if nextState == RaftState.Follower:
             loginfo(myid,"Follower")
             nextState = followerLoop()
+            prevstate = RaftState.Follower
         elif nextState == RaftState.Candidate:
-            print "[{0}] Node {1}: begin another leader election.".format(time.strftime("%H:%M:%S",time.localtime()), myid)
+            if prevstate != RaftState.Candidate:
+                print "[{0}] Node {1}: begin another leader election.".format(time.strftime("%H:%M:%S",time.localtime()), myid)
             loginfo(myid,"Candidate")
             nextState = candidateLoop()
+            prevstate = RaftState.Candidate
         elif nextState == RaftState.Leader:
             print "[{0}] Node {1}: node {2} is elected as new leader.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
             loginfo(myid,"Leader")
             nextState = leaderLoop()
+            prevstate = RaftState.Follower
         else:
             logerror(myid,"Unrecognized State")
             sys.exit()
