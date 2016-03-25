@@ -208,7 +208,7 @@ def followerLoop():
             logdebug(myid, str(addr)+":"+data)
             followerHandle(data, addr)
         except socket.timeout, msg:
-            loginfo(myid,"timeout")
+            loginfo(myid,"leader timeout")
             if myleader != None:
                 print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
             leaderchange = True
