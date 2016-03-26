@@ -29,7 +29,7 @@ myleader = None
 
 living = None
 
-stableterm = None
+stableterm = 0
 crashleader = None
 prevstate = None
 voterflag = False
