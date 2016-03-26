@@ -288,7 +288,10 @@ def candidateLoop():
                     cnt[msg.id] += 1
                     leading = cnt.most_common(1)
                     if leading[0][1] / len(living) > 0.5:
-                        return RaftState.Leader
+                        if leading[0][0] == myid:
+                            return RaftState.Leader
+                        else:
+                            return RaftState.Follower
                 else:
                     pass
         except socket.timeout, msg:
