@@ -35,8 +35,8 @@ def parseHostfile():
         
         # auto-complete port
         if len(hostinfo) < 3:
-            logger.warning("Port for host id {0} not assigned, assign {1}".format(hostid, 1024))
-            hostport = 1024
+            logger.warning("Port for host id {0} not assigned, assign {1}".format(hostid, 2024))
+            hostport = 2024
         else:
             hostport = int(hostinfo[2])
         
@@ -55,9 +55,7 @@ def parseHostfile():
         
 def initSocket():
     global mysock
-    mysock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    mysock.bind(('localhost', 1024))
-    mysock.sendto('hahaha',('localhost',1028))   
+    mysock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
 
 
 
