@@ -1,4 +1,4 @@
-
+#!/usr/bin/python2.7
 """""""""""""""""""""""""""""""""""""""
 FILE: main.py
 PURPOSE: main program for every host
@@ -190,22 +190,22 @@ def followerHandle(data, addr):
             oldleader = myleader
             myterm = msg.term
             myleader = msg.id
-            
+
         # leader is elected
         if msg.term > stableterm:
             stableterm = msg.term
             crashleader = myleader
             voterflag = False
             print "[{0}] Node {1}: node {2} is elected as new leader.".format(time.strftime("%H:%M:%S",time.localtime()), myid, myleader)
-            
+
     elif msg.type == MessageType.RequestVote:
         # new vote for follower
         if msg.term > stableterm and crashleader != None and voterflag == False:
             voterflag = True
             if prevstate != RaftState.Candidate:
                 print "[{0}] Node {1}: leader node {2} has crashed.".format(time.strftime("%H:%M:%S",time.localtime()), myid, crashleader)
-                print "[{0}] Node {1}: begin another leader election.".format(time.strftime("%H:%M:%S",time.localtime()), myid)       
-        
+                print "[{0}] Node {1}: begin another leader election.".format(time.strftime("%H:%M:%S",time.localtime()), myid)
+
         if msg.term > myterm:
             myterm = msg.term
             myleader = msg.id
